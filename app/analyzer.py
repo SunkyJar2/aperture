@@ -142,18 +142,18 @@ def _mock_advice(chat_context: List[Dict[str, str]], exposure_metrics: Dict[str,
     # 1. Angles
     if is_noir:
         angles = (
-            "• Drop the camera 15° below subject eye level with a subtle 3° Dutch tilt to impose psychological unease.\n"
-            "• Use a longer focal length (50mm–85mm equivalent) to visually compress distance and trap the subject in the frame."
+            "• Drop the camera 15 degrees below subject eye level with a subtle 3-degree Dutch tilt to impose psychological unease.\n"
+            "• Use a longer focal length (50mm-85mm equivalent) to visually compress distance and trap the subject in the frame."
         )
     elif is_bright:
         angles = (
-            "• Position camera directly at natural eye level or slightly elevated (+5°) for an open, welcoming perspective.\n"
-            "• Select a wide-to-normal lens (28mm–35mm equivalent) to capture expansive environmental context and expressive posture."
+            "• Position camera directly at natural eye level or slightly elevated (+5 degrees) for an open, welcoming perspective.\n"
+            "• Select a wide-to-normal lens (28mm-35mm equivalent) to capture expansive environmental context and expressive posture."
         )
     else:
         angles = (
             "• Position the camera precisely at subject eye height to establish immediate, neutral viewer connection.\n"
-            "• Maintain a comfortable 4–6 foot shooting distance to avoid wide-angle facial distortion while keeping natural perspective."
+            "• Maintain a comfortable 4-6 foot shooting distance to avoid wide-angle facial distortion while keeping natural perspective."
         )
 
     # 2. Lighting (references OpenCV exposure metrics)
@@ -166,7 +166,7 @@ def _mock_advice(chat_context: List[Dict[str, str]], exposure_metrics: Dict[str,
             light_note = f"• Current histogram shows {shadows:.1f}% shadows and {highlights:.1f}% highlights (Mean Luma: {luma:.1f}): push contrast toward a classic 8:1 chiaroscuro ratio."
         lighting = (
             f"{light_note}\n"
-            "• Cut fill light entirely and place a single hard key light at 45° to sculpt high-contrast split lighting.\n"
+            "• Cut fill light entirely and place a single hard key light at 45 degrees to sculpt high-contrast split lighting.\n"
             "• Rig a crisp rim/kicker behind the subject to trace jawline silhouettes against the deep shadows."
         )
     elif is_bright:
