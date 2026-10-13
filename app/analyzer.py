@@ -78,36 +78,35 @@ Live OpenCV Exposure Telemetry:
 Please analyze this shot against the target mood and provide bulleted advice under angles, lighting, and composition.
 """
 
-        model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        model_name = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
+        candidate_models = list(dict.fromkeys([model_name, "gemini-3-flash-preview", "gemini-3.5-flash-lite", "gemini-3.8-flash"]))
+
         config = types.GenerateContentConfig(
             system_instruction=ANALYZER_SYSTEM_INSTRUCTION,
             response_mime_type="application/json",
-            response_schema=CinematographyAdvice,
             temperature=0.7,
         )
 
-        try:
-            response = client.models.generate_content(
-                model=model_name,
-                contents=[
-                    types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg"),
-                    user_prompt,
-                ],
-                config=config,
-            )
-        except Exception as model_err:
-            # Fallback to gemini-1.5-flash if 2.5-flash encounters an error
-            if model_name != "gemini-1.5-flash":
+        response = None
+        for cand in candidate_models:
+            try:
                 response = client.models.generate_content(
-                    model="gemini-1.5-flash",
+                    model=cand,
                     contents=[
                         types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg"),
                         user_prompt,
                     ],
                     config=config,
                 )
-            else:
-                raise model_err
+                if response and response.text:
+                    print(f"[FrameAnalyzer] Success using model: {cand}")
+                    break
+            except Exception as cand_err:
+                print(f"[FrameAnalyzer] Model {cand} failed: {cand_err}")
+                continue
+
+        if not response or not response.text:
+            return _mock_advice(chat_context, exposure_metrics)
 
         raw_text = response.text.strip()
         if raw_text.startswith("```json"):

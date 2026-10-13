@@ -115,23 +115,27 @@ def generate_director_reply(messages: List[Dict[str, str]]) -> str:
             max_output_tokens=300,
         )
 
-        # Primary model: gemini-2.5-flash, fallback: gemini-1.5-flash
-        try:
-            response = client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=contents,
-                config=config,
-            )
-        except Exception:
-            response = client.models.generate_content(
-                model="gemini-1.5-flash",
-                contents=contents,
-                config=config,
-            )
+        # Try candidate models supported by Google AI Studio
+        primary_model = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
+        candidate_models = [primary_model, "gemini-3-flash-preview", "gemini-3.5-flash-lite", "gemini-3.8-flash"]
+        # Deduplicate while preserving order
+        candidate_models = list(dict.fromkeys(candidate_models))
 
-        reply_text = response.text.strip()
-        if reply_text:
-            return reply_text
+        response = None
+        for cand in candidate_models:
+            try:
+                response = client.models.generate_content(
+                    model=cand,
+                    contents=contents,
+                    config=config,
+                )
+                if response and response.text:
+                    print(f"[DirectorChat] Success using model: {cand}")
+                    return response.text.strip()
+            except Exception as cand_err:
+                print(f"[DirectorChat] Model {cand} failed: {cand_err}")
+                continue
+
         return _get_contextual_fallback_reply(messages)
 
     except Exception as e:
