@@ -6,3 +6,14 @@ venv/
 .venv/
 __pycache__/
 *.pyc
+
+# Installed agent skills (managed via skills-lock.json)
+.agents/skills/frontend-design/
+
+# Node & package artifacts
+node_modules/
+npm-debug.log*
+
+# OS artifacts
+.DS_Store
+Thumbs.db
