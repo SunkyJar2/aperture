@@ -9,7 +9,7 @@ Build mode: fast
 
 ## Slices
 
-- [ ] **1. Studio Foundation, Live Camera Monitor, and Co-Op Team Context**
+- [x] **1. Studio Foundation, Live Camera Monitor, and Co-Op Team Context**
   Becomes usable: A running FastAPI server serving the DaVinci Resolve–styled dark studio UI. You can pick your webcam, view the live feed in the monitor, see active UI panels with mock telemetry/advice, and find a complete `COOP_GUIDE.md` ready for 3 laptops to take their workstreams.
   Why now: Establishes the entire working scaffold, server, styles, and API contract endpoints (`/api/histogram`, `/api/chat`, `/api/analyze`) so the base runs immediately and the other laptops have clear interfaces and context to build against in parallel.
   PRD ref: `prd.md > Screens and Layout`, `prd.md > Features and Behavior > Camera Source Selection`, `prd.md > Look and Feel`

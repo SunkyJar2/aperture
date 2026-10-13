@@ -88,5 +88,6 @@ async def api_analyze(payload: AnalyzeRequest):
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/")
+@app.head("/")
 async def root():
     return FileResponse("static/index.html")
