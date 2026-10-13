@@ -19,7 +19,7 @@ Build mode: fast
   Learner check: Open `http://localhost:8000`, select your webcam from the top bar, and verify the video stream plays smoothly inside the monitor with the dark Resolve styling and amber buttons.
   Commit: `Build studio foundation, camera monitor, and co-op developer guide`
 
-- [ ] **2. Live OpenCV Exposure Scope & Histogram Engine (Laptop 1)**
+- [x] **2. Live OpenCV Exposure Scope & Histogram Engine (Laptop 1)**
   Becomes usable: The live exposure histogram directly below the monitor starts calculating and animating real-time RGB and luminance curves based on your camera feed, showing highlight and shadow clipping.
   Why now: Delivers the core computer vision telemetry that grounds the entire cinematography experience in technical camera data.
   PRD ref: `prd.md > Features and Behavior > Live Exposure Histogram`
@@ -39,7 +39,7 @@ Build mode: fast
   Learner check: Type "tense noir interrogation with heavy shadows" into the chat and verify the AI co-director asks a thoughtful follow-up question about characterization or mood.
   Commit: `Implement director chat with Gemini co-director dialogue`
 
-- [ ] **4. Multimodal Frame Analyzer & Structured Advice Engine (Laptop 3)**
+- [x] **4. Multimodal Frame Analyzer & Structured Advice Engine (Laptop 3)**
   Becomes usable: Clicking "Analyze Frame" captures the high-res camera frame, bundles it with the OpenCV histogram telemetry and chat vision, and populates the Advice Panel with actionable suggestions across Angles, Lighting, and Composition.
   Why now: The crowning piece that ties visual feed, technical telemetry, and director chat into the complete proof-of-concept loop.
   PRD ref: `prd.md > Features and Behavior > Analyze Frame and Advice Panel`, `prd.md > States and Boundaries`
