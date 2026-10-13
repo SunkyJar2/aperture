@@ -1,0 +1,8 @@
+/devpost/learner-profile.md
+.env
+.env.*
+!.env.example
+venv/
+.venv/
+__pycache__/
+*.pyc

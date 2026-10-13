@@ -1,0 +1,570 @@
+/* ==========================================================================
+   Aperture — DaVinci Resolve Style Dark Studio Theme
+   ========================================================================== */
+
+:root {
+  --bg-app: #0e1013;
+  --bg-surface: #14171c;
+  --bg-card: #1c1f26;
+  --bg-elevated: #242832;
+  
+  --border-subtle: #242933;
+  --border-muted: #2f3542;
+  --border-active: #f59e0b;
+
+  --accent-amber: #f59e0b;
+  --accent-amber-hover: #d97706;
+  --accent-amber-glow: rgba(245, 158, 11, 0.18);
+
+  --text-primary: #f3f4f6;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+
+  --channel-r: #ef4444;
+  --channel-g: #10b981;
+  --channel-b: #3b82f6;
+  --channel-luma: #f59e0b;
+
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Consolas', 'Courier New', monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ==========================================================================
+   Top Bar
+   ========================================================================== */
+.top-bar {
+  height: 44px;
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  user-select: none;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand-icon {
+  color: var(--accent-amber);
+  display: flex;
+  align-items: center;
+}
+
+.brand-name {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 2px;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.brand-badge {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  color: var(--accent-amber);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  letter-spacing: 1px;
+}
+
+.top-controls {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.camera-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.picker-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+
+.studio-select {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-muted);
+  color: var(--text-primary);
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  cursor: pointer;
+  outline: none;
+  min-width: 220px;
+}
+
+.studio-select:focus {
+  border-color: var(--accent-amber);
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #ef4444;
+}
+
+.status-dot.active {
+  background-color: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+
+/* ==========================================================================
+   Main Studio Workspace (Split View)
+   ========================================================================== */
+.studio-workspace {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  height: calc(100vh - 44px);
+  background-color: var(--bg-app);
+}
+
+/* ==========================================================================
+   Stage Section (Left / Center)
+   ========================================================================== */
+.stage-section {
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  gap: 12px;
+  overflow: hidden;
+  border-right: 1px solid var(--border-subtle);
+}
+
+.monitor-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+
+.monitor-header {
+  height: 32px;
+  background-color: var(--bg-card);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--text-secondary);
+}
+
+.monitor-tally {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent-amber);
+}
+
+.tally-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--accent-amber);
+}
+
+.viewport {
+  flex: 1;
+  background-color: #000;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+#monitor {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background-color: #000;
+}
+
+.viewport-overlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(14, 16, 19, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.viewport-overlay.hidden {
+  display: none;
+}
+
+.overlay-card {
+  text-align: center;
+  max-width: 340px;
+  padding: 24px;
+}
+
+.overlay-card svg {
+  margin-bottom: 12px;
+  color: var(--accent-amber);
+}
+
+.overlay-card h3 {
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+
+.overlay-card p {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.monitor-footer {
+  height: 48px;
+  background-color: var(--bg-card);
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+}
+
+.telemetry-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.telemetry-item strong {
+  color: var(--accent-amber);
+}
+
+.telemetry-divider {
+  color: var(--border-muted);
+}
+
+/* ==========================================================================
+   Docked Scopes (OpenCV Histogram)
+   ========================================================================== */
+.scope-dock {
+  height: 180px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dock-header {
+  height: 30px;
+  background-color: var(--bg-card);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.dock-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.scope-legend {
+  display: flex;
+  gap: 8px;
+}
+
+.legend-chip {
+  font-size: 9px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+.legend-chip.r { color: var(--channel-r); background: rgba(239, 68, 68, 0.15); }
+.legend-chip.g { color: var(--channel-g); background: rgba(16, 185, 129, 0.15); }
+.legend-chip.b { color: var(--channel-b); background: rgba(59, 130, 246, 0.15); }
+.legend-chip.luma { color: var(--channel-luma); background: rgba(245, 158, 11, 0.15); }
+
+.canvas-wrapper {
+  flex: 1;
+  background-color: #0a0b0d;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#scopeCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ==========================================================================
+   Sidebar Panels (Right)
+   ========================================================================== */
+.sidebar-section {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  padding: 12px;
+  gap: 12px;
+  overflow: hidden;
+  background-color: var(--bg-app);
+}
+
+.studio-panel {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel-header {
+  height: 32px;
+  background-color: var(--bg-card);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+}
+
+.badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background-color: var(--bg-elevated);
+  color: var(--accent-amber);
+}
+
+/* Chat Panel */
+.chat-log {
+  flex: 1;
+  padding: 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chat-msg {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.msg-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  background-color: var(--accent-amber);
+  color: #000;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.chat-msg.user .msg-avatar {
+  background-color: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.msg-content {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  padding: 8px 10px;
+  border-radius: 6px;
+  max-width: 88%;
+}
+
+.chat-msg.user .msg-content {
+  border-color: var(--border-muted);
+}
+
+.chat-input-row {
+  display: flex;
+  padding: 8px;
+  background-color: var(--bg-card);
+  border-top: 1px solid var(--border-subtle);
+  gap: 6px;
+}
+
+.chat-input-row input {
+  flex: 1;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-muted);
+  border-radius: 4px;
+  color: var(--text-primary);
+  padding: 6px 10px;
+  font-size: 12px;
+  outline: none;
+}
+
+.chat-input-row input:focus {
+  border-color: var(--accent-amber);
+}
+
+/* Advice Panel */
+.advice-content {
+  flex: 1;
+  padding: 10px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.critique-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--accent-amber);
+  border-radius: 4px;
+  padding: 10px;
+}
+
+.critique-card .card-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.critique-card h4 {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.5px;
+  color: var(--accent-amber);
+  margin: 0;
+}
+
+.critique-card p {
+  color: var(--text-primary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* ==========================================================================
+   Buttons & Utilities
+   ========================================================================== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+}
+
+.btn-amber {
+  background-color: var(--accent-amber);
+  color: #0e1013;
+}
+
+.btn-amber:hover {
+  background-color: var(--accent-amber-hover);
+  box-shadow: 0 0 10px var(--accent-amber-glow);
+}
+
+.btn-amber.loading {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background-color: var(--bg-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--border-muted);
+}
+
+.btn-secondary:hover {
+  background-color: var(--border-muted);
+}
+
+.btn-icon {
+  background-color: var(--accent-amber);
+  color: #000;
+  padding: 6px 10px;
+}
+
+.btn-icon:hover {
+  background-color: var(--accent-amber-hover);
+}

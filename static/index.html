@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aperture — AI Cinematography Studio</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Top Bar: Studio Header & Device Selection -->
+  <header class="top-bar">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="14.31" y1="8" x2="20.05" y2="17.94"></line>
+          <line x1="9.69" y1="8" x2="21.17" y2="8"></line>
+          <line x1="7.38" y1="12" x2="13.12" y2="2.06"></line>
+          <line x1="9.69" y1="16" x2="3.95" y2="6.06"></line>
+          <line x1="14.31" y1="16" x2="2.83" y2="16"></line>
+          <line x1="16.62" y1="12" x2="10.88" y2="21.94"></line>
+        </svg>
+      </div>
+      <span class="brand-name">APERTURE</span>
+      <span class="brand-badge">STUDIO</span>
+    </div>
+
+    <div class="top-controls">
+      <div class="camera-picker">
+        <label for="cameraSelect" class="picker-label">SOURCE:</label>
+        <select id="cameraSelect" class="studio-select">
+          <option value="">Searching for cameras...</option>
+        </select>
+      </div>
+
+      <div class="status-indicator">
+        <span class="status-dot active"></span>
+        <span class="status-text" id="statusText">CAMERA READY</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workstation Layout -->
+  <main class="studio-workspace">
+    <!-- Left / Center: Live Camera Stage & Scopes -->
+    <section class="stage-section">
+      <!-- Monitor Window -->
+      <div class="monitor-container" id="monitorContainer">
+        <div class="monitor-header">
+          <span class="monitor-title">LIVE MONITOR // PGM</span>
+          <div class="monitor-tally">
+            <span class="tally-dot"></span>
+            <span class="tally-text">REC STANDBY</span>
+          </div>
+        </div>
+
+        <div class="viewport">
+          <video id="monitor" autoplay playsinline muted></video>
+          
+          <!-- Empty / Placeholder State -->
+          <div class="viewport-overlay" id="viewportPlaceholder">
+            <div class="overlay-card">
+              <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1.5" fill="none">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                <circle cx="12" cy="13" r="4"></circle>
+              </svg>
+              <h3>No Camera Connected</h3>
+              <p>Select your camera source in the top bar to initialize live monitoring.</p>
+              <button id="requestPermBtn" class="btn btn-secondary">Request Access</button>
+            </div>
+          </div>
+
+          <!-- Permission Error Alert -->
+          <div class="viewport-overlay error hidden" id="permissionAlert">
+            <div class="overlay-card danger">
+              <svg viewBox="0 0 24 24" width="44" height="44" stroke="#ef4444" stroke-width="1.5" fill="none">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+              <h3>Camera Access Denied</h3>
+              <p>Please grant browser permissions to access your webcam or video capture device.</p>
+              <button id="retryCameraBtn" class="btn btn-primary">Retry Access</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Monitor Action Bar -->
+        <div class="monitor-footer">
+          <div class="telemetry-bar">
+            <span class="telemetry-item">SHADOWS: <strong id="telemetryShadows">--%</strong></span>
+            <span class="telemetry-divider">|</span>
+            <span class="telemetry-item">HIGHLIGHTS: <strong id="telemetryHighlights">--%</strong></span>
+            <span class="telemetry-divider">|</span>
+            <span class="telemetry-item">LUMA: <strong id="telemetryLuma">--</strong></span>
+          </div>
+
+          <button id="analyzeBtn" class="btn btn-amber">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+            <span>ANALYZE FRAME</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Docked Scopes / Exposure Histogram (DaVinci Resolve Style) -->
+      <div class="scope-dock">
+        <div class="dock-header">
+          <div class="dock-title">
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
+            <span>EXPOSURE SCOPES // OPENCV LUMINANCE & RGB HISTOGRAM</span>
+          </div>
+          <div class="scope-legend">
+            <span class="legend-chip r">RED</span>
+            <span class="legend-chip g">GREEN</span>
+            <span class="legend-chip b">BLUE</span>
+            <span class="legend-chip luma">LUMA</span>
+          </div>
+        </div>
+
+        <div class="canvas-wrapper">
+          <canvas id="scopeCanvas" width="640" height="160"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Side: Director Dialogue & Advice Panel -->
+    <aside class="sidebar-section">
+      <!-- Panel 1: Director Chat -->
+      <div class="studio-panel chat-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <span>DIRECTOR CHAT // SCENE INTENT</span>
+          </div>
+        </div>
+
+        <div class="chat-log" id="chatLog">
+          <div class="chat-msg model">
+            <div class="msg-avatar">DP</div>
+            <div class="msg-content">
+              <p>Welcome to the studio. Describe the scene you're framing (e.g. <em>"moody noir interrogation"</em> or <em>"warm golden-hour reunion"</em>) and I'll help you lock in the atmosphere.</p>
+            </div>
+          </div>
+        </div>
+
+        <form class="chat-input-row" id="chatForm">
+          <input type="text" id="chatInput" placeholder="Describe target scene mood or vision..." autocomplete="off">
+          <button type="submit" class="btn btn-icon">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </form>
+      </div>
+
+      <!-- Panel 2: Structured Advice Panel -->
+      <div class="studio-panel advice-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+            <span>CINEMATOGRAPHY ADVICE // CRITIQUE</span>
+          </div>
+          <span class="badge" id="adviceStatus">AWAITING CAPTURE</span>
+        </div>
+
+        <div class="advice-content" id="adviceContent">
+          <!-- Card: Angles -->
+          <div class="critique-card">
+            <div class="card-header">
+              <span class="card-icon">📐</span>
+              <h4>CAMERA ANGLES & PERSPECTIVE</h4>
+            </div>
+            <p id="anglesText">Click "Analyze Frame" to get targeted camera height, angle, and focal perspective recommendations.</p>
+          </div>
+
+          <!-- Card: Lighting -->
+          <div class="critique-card">
+            <div class="card-header">
+              <span class="card-icon">💡</span>
+              <h4>LIGHTING & EXPOSURE BALANCE</h4>
+            </div>
+            <p id="lightingText">Awaiting live frame analysis backed by OpenCV luminance histogram statistics.</p>
+          </div>
+
+          <!-- Card: Composition -->
+          <div class="critique-card">
+            <div class="card-header">
+              <span class="card-icon">🎯</span>
+              <h4>COMPOSITION & FRAMING</h4>
+            </div>
+            <p id="compositionText">Awaiting shot evaluation for headroom, leading lines, and rule of thirds placement.</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Hidden offscreen canvas for frame capture -->
+  <canvas id="captureCanvas" style="display:none;"></canvas>
+
+  <!-- Modular Scripts -->
+  <script src="/static/js/camera.js"></script>
+  <script src="/static/js/scope.js"></script>
+  <script src="/static/js/chat.js"></script>
+  <script src="/static/js/analyzer.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
