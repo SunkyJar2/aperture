@@ -29,7 +29,7 @@ Build mode: fast
   Learner check: Point the camera at a bright light and verify the histogram curve shifts right; cover the lens and verify it shifts left into shadows.
   Commit: `Implement live OpenCV exposure histogram engine`
 
-- [ ] **3. Director Chat & Conversational Gemini Co-Director (Laptop 2)**
+- [x] **3. Director Chat & Conversational Gemini Co-Director (Laptop 2)**
   Becomes usable: Interactive Director Chat where you can describe your scene mood, and Gemini responds as a seasoned cinematography co-director asking clarifying questions on character and atmosphere.
   Why now: Implements the creative dialogue loop that captures the director's artistic vision before frame analysis.
   PRD ref: `prd.md > Features and Behavior > Director Chat`
