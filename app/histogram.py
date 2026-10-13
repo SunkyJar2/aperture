@@ -2,65 +2,55 @@
 from typing import Dict, Any, List
 import numpy as np
 
+# Clipping thresholds on the 0..255 scale (spec: crushed < 10, blown > 245)
+SHADOW_CLIP_MAX = 10        # bins 0..9   -> value < 10
+HIGHLIGHT_CLIP_MIN = 246    # bins 246..255 -> value > 245
+
+
+def _normalize(hist: np.ndarray) -> List[float]:
+    """Scale a histogram to 0..1 (peak = 1.0) for rendering."""
+    peak = float(np.max(hist))
+    if peak <= 0:
+        return [0.0] * len(hist)
+    return [round(float(v), 4) for v in (hist / peak)]
+
+
 def calculate_exposure_metrics(image_bytes: bytes) -> Dict[str, Any]:
     """
     Decodes an image buffer and calculates RGB & luminance histograms,
-    along with shadow (<10) and highlight (>245) clipping percentages.
+    along with exact shadow (<10) and highlight (>245) clipping percentages.
+
+    Raises ValueError if the buffer cannot be decoded as an image.
     """
-    try:
-        import cv2
-        nparr = np.frombuffer(image_bytes, np.uint8)
-        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        if img is None:
-            return _mock_exposure_metrics()
+    import cv2
 
-        # Compute RGB histograms (256 bins each)
-        # Note: OpenCV loads BGR
-        hist_b = cv2.calcHist([img], [0], None, [256], [0, 256]).flatten()
-        hist_g = cv2.calcHist([img], [1], None, [256], [0, 256]).flatten()
-        hist_r = cv2.calcHist([img], [2], None, [256], [0, 256]).flatten()
+    nparr = np.frombuffer(image_bytes, np.uint8)
+    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    if img is None or img.size == 0:
+        raise ValueError("Could not decode image data")
 
-        # Compute Luminance histogram using Grayscale
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        hist_luma = cv2.calcHist([gray], [0], None, [256], [0, 256]).flatten()
+    # Per-channel histograms (256 bins each). OpenCV loads BGR.
+    hist_b = cv2.calcHist([img], [0], None, [256], [0, 256]).flatten()
+    hist_g = cv2.calcHist([img], [1], None, [256], [0, 256]).flatten()
+    hist_r = cv2.calcHist([img], [2], None, [256], [0, 256]).flatten()
 
-        total_pixels = gray.size
-        shadow_pixels = np.sum(gray < 10)
-        highlight_pixels = np.sum(gray > 245)
+    # Luminance (Rec.601 weights, as used by cv2.COLOR_BGR2GRAY)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    hist_luma = cv2.calcHist([gray], [0], None, [256], [0, 256]).flatten()
 
-        # Normalize histograms to 0..1 for easier rendering
-        max_val = max(float(np.max(hist_luma)), 1.0)
-        norm_luma = (hist_luma / max_val).tolist()
-        norm_r = (hist_r / max(float(np.max(hist_r)), 1.0)).tolist()
-        norm_g = (hist_g / max(float(np.max(hist_g)), 1.0)).tolist()
-        norm_b = (hist_b / max(float(np.max(hist_b)), 1.0)).tolist()
+    # Exact clipping percentages straight from the raw (un-normalized) luma bins
+    total_pixels = float(hist_luma.sum())
+    shadow_pixels = float(hist_luma[:SHADOW_CLIP_MAX].sum())
+    highlight_pixels = float(hist_luma[HIGHLIGHT_CLIP_MIN:].sum())
 
-        return {
-            "shadow_clip_pct": round(float((shadow_pixels / total_pixels) * 100), 2),
-            "highlight_clip_pct": round(float((highlight_pixels / total_pixels) * 100), 2),
-            "mean_luminance": round(float(np.mean(gray)), 1),
-            "histogram": {
-                "r": norm_r,
-                "g": norm_g,
-                "b": norm_b,
-                "luma": norm_luma,
-            }
-        }
-    except Exception:
-        return _mock_exposure_metrics()
-
-def _mock_exposure_metrics() -> Dict[str, Any]:
-    """Fallback synthetic histogram matching the spec contract."""
-    # Create smooth bell curve for mock display
-    bins = [round(float(np.sin(i / 256 * np.pi) ** 2), 3) for i in range(256)]
     return {
-        "shadow_clip_pct": 8.5,
-        "highlight_clip_pct": 3.2,
-        "mean_luminance": 128.0,
+        "shadow_clip_pct": round(shadow_pixels / total_pixels * 100.0, 2),
+        "highlight_clip_pct": round(highlight_pixels / total_pixels * 100.0, 2),
+        "mean_luminance": round(float(np.mean(gray)), 1),
         "histogram": {
-            "r": bins,
-            "g": bins,
-            "b": bins,
-            "luma": bins
-        }
+            "r": _normalize(hist_r),
+            "g": _normalize(hist_g),
+            "b": _normalize(hist_b),
+            "luma": _normalize(hist_luma),
+        },
     }
