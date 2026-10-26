@@ -43,29 +43,36 @@ const ScopeEngine = {
     const poll = async () => {
       if (!this.isPolling) return;
 
-      const frameBase64 = CameraManager.captureCurrentFrameBase64(0.35); // Low-res thumbnail for histogram speed
-      if (frameBase64) {
-        try {
-          const res = await fetch('/api/histogram', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image_base64: frameBase64 })
-          });
-          if (res.ok) {
-            const data = await res.json();
-            this.lastMetrics = data;
-            this.updateTelemetry(data);
-            this.drawHistogram(data.histogram);
-          }
-        } catch (err) {
-          // Graceful polling fallback
-        }
+      if (!document.hidden) {
+        await this.fetchAndRender();
       }
 
       setTimeout(poll, this.pollIntervalMs);
     };
 
     poll();
+  },
+
+  async fetchAndRender() {
+    if (typeof CameraManager === 'undefined') return;
+    const frameBase64 = CameraManager.captureCurrentFrameBase64(0.35); // Low-res thumbnail for histogram speed
+    if (frameBase64) {
+      try {
+        const res = await fetch('/api/histogram', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image_base64: frameBase64 })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          this.lastMetrics = data;
+          this.updateTelemetry(data);
+          this.drawHistogram(data.histogram);
+        }
+      } catch (err) {
+        // Graceful polling fallback
+      }
+    }
   },
 
   updateTelemetry(data) {
@@ -203,3 +210,5 @@ const ScopeEngine = {
     });
   }
 };
+
+window.ScopeEngine = ScopeEngine;

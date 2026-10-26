@@ -7,6 +7,9 @@ venv/
 __pycache__/
 *.pyc
 
+# TLS keys and certs
+*.pem
+
 # Installed agent skills (managed via skills-lock.json)
 .agents/skills/frontend-design/
 

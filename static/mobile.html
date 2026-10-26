@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Aperture Mobile — Wireless Camera Link</title>
+  <meta name="description" content="Aperture Mobile transforms your smartphone into a wireless cinema camera with manual ISO, shutter, and exposure controls.">
+  <meta name="color-scheme" content="dark">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e8a33d' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cline x1='14.31' y1='8' x2='20.05' y2='17.94'/%3E%3Cline x1='9.69' y1='8' x2='21.17' y2='8'/%3E%3Cline x1='7.38' y1='12' x2='13.12' y2='2.06'/%3E%3Cline x1='9.69' y1='16' x2='3.95' y2='6.06'/%3E%3Cline x1='14.31' y1='16' x2='2.83' y2='16'/%3E%3Cline x1='16.62' y1='12' x2='10.88' y2='21.94'/%3E%3C/svg%3E">
+  <meta name="theme-color" content="#0e0f12">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0c0e;
+      --bg-panel: rgba(18, 20, 24, 0.88);
+      --border: rgba(255, 255, 255, 0.12);
+      --accent: #e8a33d;
+      --accent-tint: rgba(232, 163, 61, 0.15);
+      --text: #f0f0f2;
+      --text-muted: #8c909e;
+      --live-red: #e03131;
+      --live-green: #2fb344;
+      --font-sans: 'IBM Plex Sans', -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      user-select: none;
+    }
+    .mobile-app {
+      position: relative;
+      width: 100%;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+    }
+    /* Viewfinder */
+    .viewfinder-container {
+      position: absolute;
+      inset: 0;
+      background: #000;
+      overflow: hidden;
+      z-index: 1;
+    }
+    #cameraVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    /* Crosshair & Framing Overlay */
+    .viewfinder-guides {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .grid-line {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.2);
+    }
+    .grid-line.h1 { top: 33.33%; left: 0; right: 0; height: 1px; }
+    .grid-line.h2 { top: 66.66%; left: 0; right: 0; height: 1px; }
+    .grid-line.v1 { left: 33.33%; top: 0; bottom: 0; width: 1px; }
+    .grid-line.v2 { left: 66.66%; top: 0; bottom: 0; width: 1px; }
+    .center-cross {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 16px;
+      height: 16px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+    .center-cross::before, .center-cross::after {
+      content: '';
+      position: absolute;
+      background: rgba(232, 163, 61, 0.65);
+    }
+    .center-cross::before { top: 7px; left: 0; width: 16px; height: 2px; }
+    .center-cross::after { left: 7px; top: 0; width: 2px; height: 16px; }
+
+    /* Top HUD Bar */
+    .top-hud {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: max(10px, env(safe-area-inset-top)) 14px 10px;
+      background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 100%);
+    }
+    .tally-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(14, 16, 20, 0.85);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(8px);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+    .tally-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 6px var(--accent);
+    }
+    .tally-pill.live .tally-dot {
+      background: var(--live-red);
+      box-shadow: 0 0 8px var(--live-red);
+      animation: pulseLive 1.2s infinite;
+    }
+    @keyframes pulseLive {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(1.2); }
+    }
+    .session-badge {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--accent);
+      background: var(--accent-tint);
+      border: 1px solid rgba(232, 163, 61, 0.3);
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+
+    /* Bottom Control Tray */
+    .bottom-hud {
+      margin-top: auto;
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 10px 12px max(14px, env(safe-area-inset-bottom));
+      background: linear-gradient(0deg, rgba(11,12,14,0.95) 0%, rgba(11,12,14,0.85) 70%, rgba(0,0,0,0) 100%);
+      backdrop-filter: blur(12px);
+    }
+    /* Value Readouts Ribbon */
+    .readout-ribbon {
+      display: flex;
+      justify-content: space-around;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 4px;
+    }
+    .readout-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+      border-right: 1px solid var(--border);
+    }
+    .readout-col:last-child { border-right: none; }
+    .readout-label {
+      font-size: 9px;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      margin-bottom: 2px;
+    }
+    .readout-val {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .readout-val.accent { color: var(--accent); }
+
+    /* Interactive Sliders & Controls */
+    .controls-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+    .control-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .control-label {
+      width: 48px;
+      font-size: 10.5px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+    }
+    .control-slider {
+      flex: 1;
+      accent-color: var(--accent);
+      height: 4px;
+      cursor: pointer;
+    }
+    .control-badge {
+      min-width: 52px;
+      text-align: right;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    /* Fast Action Buttons */
+    .quick-actions-row {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-quick {
+      flex: 1;
+      height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .btn-quick:active, .btn-quick.active {
+      background: var(--accent-tint);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .btn-quick svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Permission prompt */
+    .perm-prompt {
+      position: absolute;
+      inset: 0;
+      z-index: 100;
+      background: rgba(11, 12, 14, 0.94);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+    }
+    .perm-prompt.hidden { display: none; }
+    .perm-card {
+      max-width: 300px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      align-items: center;
+    }
+    .perm-card h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .perm-card p {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+    .btn-primary {
+      width: 100%;
+      height: 42px;
+      background: var(--accent);
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-secondary {
+      width: 100%;
+      height: 42px;
+      background: #181a20;
+      color: var(--accent);
+      border: 1px solid rgba(232, 163, 61, 0.4);
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.15s ease;
+    }
+    .btn-secondary:active {
+      background: rgba(232, 163, 61, 0.15);
+    }
+    .btn-snap-shutter {
+      border: 1px solid var(--accent);
+      background: var(--accent-tint);
+      color: var(--accent);
+    }
+    .btn-snap-shutter span {
+      color: var(--accent);
+      font-weight: 700;
+    }
+    .insecure-notice {
+      background: rgba(224, 49, 49, 0.12);
+      border: 1px solid rgba(224, 49, 49, 0.35);
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      text-align: left;
+      width: 100%;
+    }
+    .insecure-badge {
+      font-size: 11px;
+      font-weight: 700;
+      color: #ff6b6b;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .insecure-notice p {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.35;
+      margin: 0;
+    }
+    .btn-https-switch {
+      background: #2b1d1d;
+      border: 1px solid #e03131;
+      color: #ff8787;
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .platform-compat-note {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="mobile-app">
+    <!-- Camera Viewfinder -->
+    <div class="viewfinder-container">
+      <video id="cameraVideo" autoplay playsinline muted></video>
+      <div class="viewfinder-guides">
+        <div class="grid-line h1"></div>
+        <div class="grid-line h2"></div>
+        <div class="grid-line v1"></div>
+        <div class="grid-line v2"></div>
+        <div class="center-cross"></div>
+      </div>
+    </div>
+
+    <!-- Top HUD Bar -->
+    <header class="top-hud">
+      <div class="tally-pill" id="tallyPill">
+        <span class="tally-dot"></span>
+        <span id="tallyText">LINKING...</span>
+      </div>
+      <div class="session-badge" id="sessionBadge">SESSION: ----</div>
+    </header>
+
+    <!-- Bottom Control Tray -->
+    <div class="bottom-hud">
+      <!-- Quick Telemetry Readout -->
+      <div class="readout-ribbon">
+        <div class="readout-col">
+          <span class="readout-label">ISO</span>
+          <span class="readout-val accent" id="readoutIso">AUTO</span>
+        </div>
+        <div class="readout-col">
+          <span class="readout-label">SHUTTER</span>
+          <span class="readout-val" id="readoutShutter">1/60s</span>
+        </div>
+        <div class="readout-col">
+          <span class="readout-label">EV BIAS</span>
+          <span class="readout-val" id="readoutEv">0.0</span>
+        </div>
+        <div class="readout-col">
+          <span class="readout-label">FPS</span>
+          <span class="readout-val" id="readoutFps">30</span>
+        </div>
+      </div>
+
+      <!-- Controls Panel -->
+      <div class="controls-panel">
+        <!-- ISO Slider -->
+        <div class="control-row">
+          <span class="control-label">ISO</span>
+          <input type="range" id="isoSlider" class="control-slider" min="50" max="3200" step="50" value="400">
+          <span class="control-badge" id="isoBadge">ISO 400</span>
+        </div>
+
+        <!-- Shutter Speed Slider (fractions) -->
+        <div class="control-row">
+          <span class="control-label">SHUTTER</span>
+          <input type="range" id="shutterSlider" class="control-slider" min="0" max="6" step="1" value="3">
+          <span class="control-badge" id="shutterBadge">1/60s</span>
+        </div>
+
+        <!-- EV Compensation Slider -->
+        <div class="control-row">
+          <span class="control-label">EV BIAS</span>
+          <input type="range" id="evSlider" class="control-slider" min="-3" max="3" step="0.5" value="0">
+          <span class="control-badge" id="evBadge">0.0 EV</span>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="quick-actions-row">
+        <button type="button" class="btn-quick" id="torchBtn" title="Toggle flashlight torch">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          <span>TORCH</span>
+        </button>
+        <button type="button" class="btn-quick" id="flipBtn" title="Flip front / back camera">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0-4.418-3.582-8-8-8s-8 3.582-8 8h3l-4 4-4-4h3c0-5.523 4.477-10 10-10s10 4.477 10 10v2h-2v-2z"></path><path d="M4 14c0 4.418 3.582 8 8 8s8-3.582 8-8h-3l4-4 4 4h-3c0 5.523-4.477 10-10 10S2 19.523 2 14v-2h2v2z"></path></svg>
+          <span>FLIP CAM</span>
+        </button>
+        <button type="button" class="btn-quick" id="autoExpBtn" title="Reset to auto exposure">
+          <span>AUTO EXP</span>
+        </button>
+        <button type="button" class="btn-quick btn-snap-shutter" id="snapShutterBtn" title="Send photo snapshot to studio monitor">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3" fill="#e8a33d"></circle></svg>
+          <span>SNAP SHOT</span>
+        </button>
+      </div>
+
+      <div class="platform-compat-note" id="platformNote">
+        Hardware manual exposure active on supported mobile browsers (Chrome Android / EV bias on iOS).
+      </div>
+    </div>
+
+    <!-- Permissions Prompt -->
+    <div class="perm-prompt" id="permPrompt">
+      <div class="perm-card">
+        <svg viewBox="0 0 24 24" width="48" height="48" stroke="#e8a33d" stroke-width="1.5" fill="none">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+          <circle cx="12" cy="13" r="4"></circle>
+        </svg>
+        <h2>Connect Camera</h2>
+        <p id="permDesc">Allow camera access to transmit a high-definition wireless feed to the Aperture Studio monitor.</p>
+        
+        <button class="btn-primary" id="startCamBtn">START LIVE STREAM</button>
+
+        <div id="insecureNotice" class="insecure-notice" style="display: none;">
+          <div class="insecure-badge">⚠️ Insecure HTTP Origin</div>
+          <p>Mobile browsers require HTTPS to stream camera video. Tap below to switch to HTTPS:</p>
+          <button type="button" id="switchToHttpsBtn" class="btn-https-switch">🔒 Switch to HTTPS (Port 8443)</button>
+        </div>
+
+        <button type="button" id="startSnapshotBtn" class="btn-secondary">📸 SNAPSHOT PHOTO MODE</button>
+        <input type="file" id="nativePhotoPicker" accept="image/*" capture="environment" style="display:none;">
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * Aperture Mobile Camera Link Controller
+     * Handles WebRTC P2P stream to studio monitor, ICE candidate queuing,
+     * insecure context detection with HTTPS switcher, native snapshot fallback,
+     * and manual hardware exposure controls.
+     */
+    const MobileLink = {
+      videoEl: null,
+      stream: null,
+      track: null,
+      capabilities: {},
+      settings: {},
+      peerConnection: null,
+      pendingCandidates: [],
+      signalingWs: null,
+      sessionId: 'studio_default',
+      facingMode: 'environment',
+      isTorchOn: false,
+
+      shutterSpeeds: ['1/24', '1/48', '1/60', '1/120', '1/250', '1/500', '1/1000'],
+
+      async init() {
+        this.videoEl = document.getElementById('cameraVideo');
+        this.tallyPill = document.getElementById('tallyPill');
+        this.tallyText = document.getElementById('tallyText');
+        this.sessionBadge = document.getElementById('sessionBadge');
+        this.permPrompt = document.getElementById('permPrompt');
+
+        // Extract session from URL query
+        const params = new URLSearchParams(window.location.search);
+        this.sessionId = params.get('session') || 'studio_default';
+        if (this.sessionBadge) {
+          this.sessionBadge.textContent = `SESSION: ${this.sessionId.slice(-6).toUpperCase()}`;
+        }
+
+        // Detect insecure context (HTTP on local LAN)
+        const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (!window.isSecureContext && !isLocalHost) {
+          console.warn('[MobileLink] Insecure origin detected. navigator.mediaDevices may be restricted.');
+          const insecureNotice = document.getElementById('insecureNotice');
+          if (insecureNotice) insecureNotice.style.display = 'block';
+        }
+
+        // HTTPS Switcher button
+        const switchToHttpsBtn = document.getElementById('switchToHttpsBtn');
+        if (switchToHttpsBtn) {
+          switchToHttpsBtn.addEventListener('click', () => {
+            const httpsUrl = `https://${window.location.hostname}:8443/mobile${window.location.search}`;
+            window.location.href = httpsUrl;
+          });
+        }
+
+        // Live stream button
+        document.getElementById('startCamBtn').addEventListener('click', () => {
+          this.startCameraAndLink();
+        });
+
+        // Instant snapshot photo mode
+        const startSnapshotBtn = document.getElementById('startSnapshotBtn');
+        const nativePhotoPicker = document.getElementById('nativePhotoPicker');
+        if (startSnapshotBtn && nativePhotoPicker) {
+          startSnapshotBtn.addEventListener('click', () => {
+            this.initSignaling();
+            nativePhotoPicker.click();
+          });
+
+          nativePhotoPicker.addEventListener('change', (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (file) {
+              this.uploadSnapshotFile(file);
+            }
+          });
+        }
+
+        // Shutter snap button in bottom ribbon
+        const snapShutterBtn = document.getElementById('snapShutterBtn');
+        if (snapShutterBtn) {
+          snapShutterBtn.addEventListener('click', () => {
+            if (this.stream && this.videoEl && this.videoEl.readyState >= 2) {
+              this.captureAndSendVideoFrame();
+            } else if (nativePhotoPicker) {
+              this.initSignaling();
+              nativePhotoPicker.click();
+            }
+          });
+        }
+
+        this.bindUiEvents();
+      },
+
+      bindUiEvents() {
+        const isoSlider = document.getElementById('isoSlider');
+        const isoBadge = document.getElementById('isoBadge');
+        const readoutIso = document.getElementById('readoutIso');
+
+        isoSlider.addEventListener('input', (e) => {
+          const val = Number(e.target.value);
+          isoBadge.textContent = `ISO ${val}`;
+          readoutIso.textContent = String(val);
+          this.applyCameraConstraint({ iso: val });
+        });
+
+        const shutterSlider = document.getElementById('shutterSlider');
+        const shutterBadge = document.getElementById('shutterBadge');
+        const readoutShutter = document.getElementById('readoutShutter');
+
+        shutterSlider.addEventListener('input', (e) => {
+          const idx = Number(e.target.value);
+          const spd = this.shutterSpeeds[idx] || '1/60';
+          shutterBadge.textContent = `${spd}s`;
+          readoutShutter.textContent = `${spd}s`;
+          const frac = spd.split('/');
+          if (frac.length === 2) {
+            const sec = 1.0 / Number(frac[1]);
+            this.applyCameraConstraint({ exposureTime: sec });
+          }
+        });
+
+        const evSlider = document.getElementById('evSlider');
+        const evBadge = document.getElementById('evBadge');
+        const readoutEv = document.getElementById('readoutEv');
+
+        evSlider.addEventListener('input', (e) => {
+          const val = Number(e.target.value);
+          evBadge.textContent = `${val > 0 ? '+' : ''}${val.toFixed(1)} EV`;
+          readoutEv.textContent = `${val > 0 ? '+' : ''}${val.toFixed(1)}`;
+          this.applyCameraConstraint({ exposureCompensation: val });
+        });
+
+        const torchBtn = document.getElementById('torchBtn');
+        torchBtn.addEventListener('click', () => {
+          this.isTorchOn = !this.isTorchOn;
+          torchBtn.classList.toggle('active', this.isTorchOn);
+          this.applyCameraConstraint({ torch: this.isTorchOn });
+        });
+
+        const flipBtn = document.getElementById('flipBtn');
+        flipBtn.addEventListener('click', async () => {
+          this.facingMode = (this.facingMode === 'environment') ? 'user' : 'environment';
+          await this.restartCameraStream();
+        });
+
+        const autoExpBtn = document.getElementById('autoExpBtn');
+        autoExpBtn.addEventListener('click', () => {
+          this.applyCameraConstraint({
+            exposureMode: 'continuous',
+            whiteBalanceMode: 'continuous',
+            exposureCompensation: 0
+          });
+          evSlider.value = 0;
+          evBadge.textContent = '0.0 EV';
+          readoutEv.textContent = '0.0';
+          readoutIso.textContent = 'AUTO';
+          isoBadge.textContent = 'AUTO';
+        });
+      },
+
+      async startCameraAndLink() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          const permDesc = document.getElementById('permDesc');
+          if (permDesc) {
+            permDesc.innerHTML = `<span style="color:#ff6b6b; font-weight:700;">Camera API Blocked:</span> Mobile browsers disable camera streaming on plain HTTP.<br><br>Tap <strong>Switch to HTTPS (Port 8443)</strong> below or use <strong>Snapshot Photo Mode</strong>.`;
+          }
+          const insecureNotice = document.getElementById('insecureNotice');
+          if (insecureNotice) insecureNotice.style.display = 'block';
+          return;
+        }
+
+        try {
+          await this.startCamera();
+          this.permPrompt.classList.add('hidden');
+          this.initSignaling();
+        } catch (err) {
+          console.error('[MobileLink] Failed to start camera:', err);
+          const permDesc = document.getElementById('permDesc');
+          if (permDesc) {
+            permDesc.innerHTML = `<span style="color:#ff6b6b; font-weight:700;">Camera Permission Error:</span> ${err.message}.<br><br>Please verify camera permissions or tap <strong>Switch to HTTPS</strong>.`;
+          }
+          const insecureNotice = document.getElementById('insecureNotice');
+          if (insecureNotice) insecureNotice.style.display = 'block';
+        }
+      },
+
+      async startCamera() {
+        if (this.stream) {
+          this.stream.getTracks().forEach(t => t.stop());
+        }
+
+        const constraints = {
+          audio: false,
+          video: {
+            facingMode: { ideal: this.facingMode },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+          }
+        };
+
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        this.stream = stream;
+        this.videoEl.srcObject = stream;
+        await this.videoEl.play();
+
+        const videoTracks = stream.getVideoTracks();
+        if (videoTracks.length > 0) {
+          this.track = videoTracks[0];
+          this.inspectCapabilities();
+        }
+      },
+
+      async restartCameraStream() {
+        await this.startCamera();
+        if (this.peerConnection && this.track) {
+          const senders = this.peerConnection.getSenders();
+          const videoSender = senders.find(s => s.track && s.track.kind === 'video');
+          if (videoSender) {
+            videoSender.replaceTrack(this.track);
+          }
+        }
+      },
+
+      inspectCapabilities() {
+        if (!this.track || typeof this.track.getCapabilities !== 'function') return;
+
+        this.capabilities = this.track.getCapabilities() || {};
+        this.settings = this.track.getSettings() || {};
+        console.log('[MobileLink] Camera Capabilities:', this.capabilities);
+
+        const isoSlider = document.getElementById('isoSlider');
+        if (this.capabilities.iso) {
+          isoSlider.min = this.capabilities.iso.min || 50;
+          isoSlider.max = this.capabilities.iso.max || 3200;
+          isoSlider.step = this.capabilities.iso.step || 50;
+        }
+
+        const evSlider = document.getElementById('evSlider');
+        if (this.capabilities.exposureCompensation) {
+          evSlider.min = this.capabilities.exposureCompensation.min;
+          evSlider.max = this.capabilities.exposureCompensation.max;
+          evSlider.step = this.capabilities.exposureCompensation.step || 0.5;
+        }
+
+        const platformNote = document.getElementById('platformNote');
+        const hasHardwareIso = !!this.capabilities.iso;
+        if (hasHardwareIso) {
+          platformNote.textContent = 'Hardware manual sensor ISO & exposure controls active.';
+          platformNote.style.color = 'var(--live-green)';
+        } else {
+          platformNote.textContent = 'Standard mobile sensor mode: EV bias, torch, and optical zoom enabled.';
+        }
+      },
+
+      async applyCameraConstraint(advancedObj) {
+        if (!this.track || typeof this.track.applyConstraints !== 'function') return;
+
+        try {
+          await this.track.applyConstraints({
+            advanced: [advancedObj]
+          });
+          console.log('[MobileLink] Applied constraint:', advancedObj);
+
+          this.sendSignalingMessage({
+            type: 'camera_telemetry',
+            settings: advancedObj
+          });
+        } catch (err) {
+          console.warn('[MobileLink] Could not apply hardware constraint:', err);
+        }
+      },
+
+      uploadSnapshotFile(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let w = img.width;
+            let h = img.height;
+            const maxD = 1920;
+            if (w > maxD || h > maxD) {
+              if (w > h) { h = Math.round((h * maxD) / w); w = maxD; }
+              else { w = Math.round((w * maxD) / h); h = maxD; }
+            }
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+
+            this.sendSignalingMessage({
+              type: 'mobile_frame_snapshot',
+              image: dataUrl
+            });
+
+            // Also send via REST API fallback
+            fetch(`/api/mobile-snapshot/${this.sessionId}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ image_base64: dataUrl })
+            }).catch(err => console.warn('POST snapshot error:', err));
+
+            this.permPrompt.classList.add('hidden');
+            this.videoEl.poster = dataUrl;
+            this.updateTally('SNAPSHOT SENT', true);
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      },
+
+      captureAndSendVideoFrame() {
+        const canvas = document.createElement('canvas');
+        canvas.width = this.videoEl.videoWidth || 1280;
+        canvas.height = this.videoEl.videoHeight || 720;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(this.videoEl, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+
+        this.sendSignalingMessage({
+          type: 'mobile_frame_snapshot',
+          image: dataUrl
+        });
+
+        fetch(`/api/mobile-snapshot/${this.sessionId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image_base64: dataUrl })
+        }).catch(err => console.warn('POST snapshot error:', err));
+
+        this.updateTally('FRAME CAPTURED', true);
+        setTimeout(() => this.updateTally('ON AIR', true), 1200);
+      },
+
+      initSignaling() {
+        if (this.signalingWs && this.signalingWs.readyState === WebSocket.OPEN) return;
+
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws/link/${this.sessionId}`;
+
+        this.updateTally('CONNECTING', false);
+
+        this.signalingWs = new WebSocket(wsUrl);
+
+        this.signalingWs.onopen = () => {
+          console.log('[MobileLink] Signaling WebSocket connected.');
+          this.updateTally('PAIRING...', false);
+          if (this.stream) {
+            this.initWebRTC();
+          }
+        };
+
+        this.signalingWs.onmessage = async (e) => {
+          try {
+            const data = JSON.parse(e.data);
+            await this.handleSignalingMessage(data);
+          } catch (err) {
+            console.error('[MobileLink] Signaling message error:', err);
+          }
+        };
+
+        this.signalingWs.onclose = () => {
+          console.log('[MobileLink] Signaling disconnected, reconnecting in 2s...');
+          this.updateTally('OFFLINE', false);
+          setTimeout(() => this.initSignaling(), 2000);
+        };
+      },
+
+      initWebRTC() {
+        const config = {
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' }
+          ]
+        };
+
+        this.peerConnection = new RTCPeerConnection(config);
+        this.pendingCandidates = [];
+
+        if (this.stream) {
+          this.stream.getTracks().forEach(t => this.peerConnection.addTrack(t, this.stream));
+        }
+
+        this.peerConnection.onicecandidate = (event) => {
+          if (event.candidate) {
+            this.sendSignalingMessage({
+              type: 'ice_candidate',
+              candidate: event.candidate
+            });
+          }
+        };
+
+        this.peerConnection.onconnectionstatechange = () => {
+          const state = this.peerConnection.connectionState;
+          console.log('[MobileLink] WebRTC Connection state:', state);
+          if (state === 'connected') {
+            this.updateTally('ON AIR', true);
+          } else if (state === 'disconnected' || state === 'failed') {
+            this.updateTally('LINK LOST', false);
+          }
+        };
+
+        this.createAndSendOffer();
+      },
+
+      async createAndSendOffer() {
+        try {
+          const offer = await this.peerConnection.createOffer();
+          await this.peerConnection.setLocalDescription(offer);
+          this.sendSignalingMessage({
+            type: 'offer',
+            sdp: offer.sdp
+          });
+        } catch (err) {
+          console.error('[MobileLink] Error creating offer:', err);
+        }
+      },
+
+      async handleSignalingMessage(msg) {
+        if (msg.type === 'answer' && this.peerConnection) {
+          await this.peerConnection.setRemoteDescription(new RTCSessionDescription({
+            type: 'answer',
+            sdp: msg.sdp
+          }));
+          console.log('[MobileLink] Remote SDP Answer set.');
+
+          // Drain queued ICE candidates
+          while (this.pendingCandidates.length > 0) {
+            const cand = this.pendingCandidates.shift();
+            try {
+              await this.peerConnection.addIceCandidate(new RTCIceCandidate(cand));
+            } catch (e) {
+              console.warn('[MobileLink] Drain candidate error:', e);
+            }
+          }
+        } else if (msg.type === 'ice_candidate') {
+          if (this.peerConnection && this.peerConnection.remoteDescription) {
+            try {
+              await this.peerConnection.addIceCandidate(new RTCIceCandidate(msg.candidate));
+            } catch (e) {
+              console.warn('[MobileLink] addIceCandidate error:', e);
+            }
+          } else {
+            this.pendingCandidates.push(msg.candidate);
+          }
+        } else if (msg.type === 'camera_control') {
+          console.log('[MobileLink] Received remote camera control:', msg);
+          if (msg.iso !== undefined) {
+            const isoSlider = document.getElementById('isoSlider');
+            if (isoSlider) isoSlider.value = msg.iso;
+            const isoBadge = document.getElementById('isoBadge');
+            if (isoBadge) isoBadge.textContent = `ISO ${msg.iso}`;
+            const readoutIso = document.getElementById('readoutIso');
+            if (readoutIso) readoutIso.textContent = String(msg.iso);
+            this.applyCameraConstraint({ iso: msg.iso });
+          }
+          if (msg.exposureCompensation !== undefined) {
+            const evSlider = document.getElementById('evSlider');
+            if (evSlider) evSlider.value = msg.exposureCompensation;
+            const evBadge = document.getElementById('evBadge');
+            if (evBadge) evBadge.textContent = `${msg.exposureCompensation.toFixed(1)} EV`;
+            const readoutEv = document.getElementById('readoutEv');
+            if (readoutEv) readoutEv.textContent = msg.exposureCompensation.toFixed(1);
+            this.applyCameraConstraint({ exposureCompensation: msg.exposureCompensation });
+          }
+          if (msg.torch !== undefined) {
+            this.isTorchOn = !!msg.torch;
+            const torchBtn = document.getElementById('torchBtn');
+            if (torchBtn) torchBtn.classList.toggle('active', this.isTorchOn);
+            this.applyCameraConstraint({ torch: this.isTorchOn });
+          }
+        }
+      },
+
+      sendSignalingMessage(data) {
+        if (this.signalingWs && this.signalingWs.readyState === WebSocket.OPEN) {
+          this.signalingWs.send(JSON.stringify(data));
+        }
+      },
+
+      updateTally(text, isLive) {
+        if (this.tallyText) this.tallyText.textContent = text;
+        if (this.tallyPill) {
+          this.tallyPill.classList.toggle('live', isLive);
+        }
+      }
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      MobileLink.init();
+    });
+  </script>
+</body>
+</html>

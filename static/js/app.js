@@ -5,17 +5,17 @@
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('Initializing Aperture Studio...');
 
-  // Initialize camera system
-  await CameraManager.init();
-
-  // Initialize scopes
+  // Initialize scopes, grading, framing guides, take reel, mobile link, chat, and analyzer immediately
   ScopeEngine.init();
-
-  // Initialize director dialogue
+  GradingEngine.init();
+  GuidesManager.init();
+  TakeReelManager.init();
+  MobileLinkStudio.init();
   ChatManager.init();
-
-  // Initialize frame analyzer
   AnalyzerManager.init();
+
+  // Initialize camera system asynchronously
+  await CameraManager.init();
 
   console.log('Aperture Studio ready.');
 });

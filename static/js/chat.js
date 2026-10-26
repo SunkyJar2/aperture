@@ -34,177 +34,11 @@ const ChatManager = {
     this.inputEl = document.getElementById('chatInput');
     this.logEl = document.getElementById('chatLog');
 
-    this.injectStyles();
     this.renderHeaderControls();
     this.renderPresetChips();
     this.bindEvents();
 
     console.log('[ChatManager] Initialized with scene presets and quick-replies.');
-  },
-
-  injectStyles() {
-    if (document.getElementById('director-chat-styles')) return;
-
-    const styleEl = document.createElement('style');
-    styleEl.id = 'director-chat-styles';
-    styleEl.textContent = `
-      /* Director Chat Enhanced Styles (Laptop 2) */
-      .chat-presets-bar {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 10px;
-        background: #14161a;
-        border-top: 1px solid var(--border-subtle);
-        overflow-x: auto;
-        white-space: nowrap;
-        scrollbar-width: thin;
-        scrollbar-color: var(--border-muted) transparent;
-      }
-      .chat-presets-bar::-webkit-scrollbar {
-        height: 4px;
-      }
-      .chat-presets-bar::-webkit-scrollbar-thumb {
-        background: var(--border-muted);
-        border-radius: 2px;
-      }
-      .preset-chip-label {
-        font-family: var(--font-mono);
-        font-size: 9px;
-        color: var(--accent-amber);
-        letter-spacing: 0.5px;
-        text-transform: uppercase;
-        flex-shrink: 0;
-        font-weight: 600;
-      }
-      .preset-chip {
-        background: var(--bg-surface);
-        border: 1px solid var(--border-muted);
-        color: var(--text-secondary);
-        font-size: 11px;
-        padding: 3px 8px;
-        border-radius: 12px;
-        cursor: pointer;
-        flex-shrink: 0;
-        transition: all 0.15s ease;
-        font-family: var(--font-sans);
-      }
-      .preset-chip:hover {
-        background: var(--bg-card);
-        border-color: var(--accent-amber);
-        color: var(--text-primary);
-        box-shadow: 0 0 6px rgba(245, 158, 11, 0.2);
-        transform: translateY(-1px);
-      }
-
-      /* Quick-reply follow-up suggestions */
-      .quick-replies-wrap {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        margin-top: 6px;
-        padding-left: 32px;
-        animation: chatFadeIn 0.2s ease-out;
-      }
-      .quick-reply-pill {
-        background: rgba(245, 158, 11, 0.08);
-        border: 1px dashed var(--accent-amber);
-        color: var(--accent-amber);
-        font-size: 11px;
-        padding: 3px 9px;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: all 0.15s ease;
-        font-family: var(--font-mono);
-      }
-      .quick-reply-pill:hover {
-        background: var(--accent-amber);
-        color: #0e1013;
-        border-style: solid;
-        box-shadow: 0 0 8px var(--accent-amber-glow);
-      }
-
-      /* Message animations & timestamps */
-      @keyframes chatFadeIn {
-        from { opacity: 0; transform: translateY(4px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-      .chat-msg {
-        animation: chatFadeIn 0.2s ease-out;
-      }
-      .msg-meta {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        margin-bottom: 2px;
-      }
-      .msg-sender {
-        font-family: var(--font-mono);
-        font-size: 10px;
-        font-weight: 700;
-        color: var(--accent-amber);
-        letter-spacing: 0.5px;
-      }
-      .chat-msg.user .msg-sender {
-        color: var(--text-secondary);
-      }
-      .msg-time {
-        font-family: var(--font-mono);
-        font-size: 9px;
-        color: var(--text-muted);
-      }
-
-      /* Animated typing indicator */
-      .typing-wave {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 4px 6px;
-      }
-      .typing-dot {
-        width: 5px;
-        height: 5px;
-        border-radius: 50%;
-        background-color: var(--accent-amber);
-        animation: typingBlink 1.2s infinite ease-in-out;
-      }
-      .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-      .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-      @keyframes typingBlink {
-        0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
-        40% { opacity: 1; transform: scale(1.15); box-shadow: 0 0 4px var(--accent-amber); }
-      }
-      .typing-status {
-        font-family: var(--font-mono);
-        font-size: 10px;
-        color: var(--text-muted);
-        margin-left: 6px;
-        font-style: italic;
-      }
-
-      /* Reset button in panel header */
-      .btn-chat-reset {
-        background: transparent;
-        border: 1px solid var(--border-subtle);
-        color: var(--text-muted);
-        font-family: var(--font-mono);
-        font-size: 9.5px;
-        padding: 2px 7px;
-        border-radius: 3px;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        transition: all 0.15s ease;
-      }
-      .btn-chat-reset:hover {
-        border-color: var(--accent-amber);
-        color: var(--accent-amber);
-        background: rgba(245, 158, 11, 0.08);
-      }
-    `;
-    document.head.appendChild(styleEl);
   },
 
   renderHeaderControls() {
@@ -215,6 +49,7 @@ const ChatManager = {
     resetBtn.type = 'button';
     resetBtn.className = 'btn-chat-reset';
     resetBtn.title = 'Reset dialogue session for a fresh scene';
+    resetBtn.setAttribute('aria-label', 'Reset scene dialogue');
     resetBtn.innerHTML = `
       <svg viewBox="0 0 24 24" width="11" height="11" stroke="currentColor" stroke-width="2" fill="none">
         <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
@@ -245,11 +80,14 @@ const ChatManager = {
       chip.type = 'button';
       chip.className = 'preset-chip';
       chip.textContent = p.label;
-      chip.title = `Click to load: "${p.prompt}"`;
+      chip.title = `Click to load prompt (Click again to send): "${p.prompt}"`;
       chip.addEventListener('click', () => {
-        this.inputEl.value = p.prompt;
-        this.inputEl.focus();
-        this.submitMessage(p.prompt);
+        if (this.inputEl.value === p.prompt) {
+          this.submitMessage(p.prompt);
+        } else {
+          this.inputEl.value = p.prompt;
+          this.inputEl.focus();
+        }
       });
       presetsBar.appendChild(chip);
     });
@@ -282,6 +120,9 @@ const ChatManager = {
     this.inputEl.value = '';
     this.removeQuickReplies();
 
+    // Take history snapshot before appending user message so message is not sent twice
+    const priorHistory = [...this.history];
+
     // Append user message with timestamp
     this.appendMessage('user', text);
 
@@ -294,7 +135,7 @@ const ChatManager = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: text,
-          history: this.history
+          history: priorHistory
         })
       });
 
@@ -462,4 +303,6 @@ const ChatManager = {
     return this.history;
   }
 };
+
+window.ChatManager = ChatManager;
 

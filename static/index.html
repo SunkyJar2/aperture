@@ -4,17 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Aperture — AI Cinematography Studio</title>
-  <link rel="stylesheet" href="/static/css/style.css">
+  <meta name="description" content="Aperture is a live cinematography workstation: real-time exposure scopes plus AI advice on camera angle, lighting, and composition.">
+  <meta name="color-scheme" content="dark">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e8a33d' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cline x1='14.31' y1='8' x2='20.05' y2='17.94'/%3E%3Cline x1='9.69' y1='8' x2='21.17' y2='8'/%3E%3Cline x1='7.38' y1='12' x2='13.12' y2='2.06'/%3E%3Cline x1='9.69' y1='16' x2='3.95' y2='6.06'/%3E%3Cline x1='14.31' y1='16' x2='2.83' y2='16'/%3E%3Cline x1='16.62' y1='12' x2='10.88' y2='21.94'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- IBM Plex Sans = UI chrome. JetBrains Mono is kept because scope.js draws canvas labels with it. -->
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-  <!-- Top Bar: Studio Header & Device Selection -->
+  <!-- Menubar: brand, page, camera source, connection status -->
   <header class="top-bar">
     <div class="brand">
-      <div class="brand-icon">
-        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <div class="brand-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"></circle>
           <line x1="14.31" y1="8" x2="20.05" y2="17.94"></line>
           <line x1="9.69" y1="8" x2="21.17" y2="8"></line>
@@ -24,139 +28,309 @@
           <line x1="16.62" y1="12" x2="10.88" y2="21.94"></line>
         </svg>
       </div>
-      <span class="brand-name">APERTURE</span>
-      <span class="brand-badge">STUDIO</span>
+      <h1 class="brand-name">Aperture</h1>
+      <span class="brand-badge">Studio</span>
     </div>
 
     <div class="top-controls">
       <div class="camera-picker">
-        <label for="cameraSelect" class="picker-label">SOURCE:</label>
-        <select id="cameraSelect" class="studio-select">
+        <label for="cameraSelect" class="picker-label">Source</label>
+        <select id="cameraSelect" class="studio-select" aria-label="Select camera source">
           <option value="">Searching for cameras...</option>
         </select>
       </div>
 
-      <div class="status-indicator">
+      <button type="button" id="mobileLinkBtn" class="btn btn-secondary btn-mobile-link" title="Connect smartphone as wireless camera (Key: M)" aria-label="Wireless Mobile Camera Link">
+        <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+          <line x1="12" y1="18" x2="12.01" y2="18"></line>
+        </svg>
+        <span>LINK PHONE</span>
+      </button>
+
+      <div class="status-indicator" role="status">
         <span class="status-dot active"></span>
         <span class="status-text" id="statusText">CAMERA READY</span>
       </div>
     </div>
   </header>
 
-  <!-- Main Workstation Layout -->
+  <!-- Workspace: tiled panels -->
   <main class="studio-workspace">
-    <!-- Left / Center: Live Camera Stage & Scopes -->
-    <section class="stage-section">
-      <!-- Monitor Window -->
+    <!-- Left: Viewer + Scopes -->
+    <section class="stage-section" aria-label="Viewer and scopes">
+      <!-- Viewer -->
       <div class="monitor-container" id="monitorContainer">
         <div class="monitor-header">
-          <span class="monitor-title">LIVE MONITOR // PGM</span>
+          <div class="panel-title">
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="2" y="4" width="20" height="14" rx="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+            </svg>
+            <span class="monitor-title">Viewer</span>
+            <span class="panel-subtitle">Program</span>
+          </div>
+
+          <!-- Viewer Overlays, LUTs, Monitoring & Framing Guides -->
+          <div class="monitor-header-actions">
+            <!-- Film Look LUT Selector -->
+            <div class="lut-control-wrapper">
+              <select id="lutSelect" class="studio-select btn-lut-select" aria-label="Select Film Look LUT" title="Apply Film Look LUT (Key: L)">
+                <option value="passthrough">LUT: None</option>
+                <option value="kodak2383">Kodak 2383</option>
+                <option value="tealorange">Teal &amp; Orange</option>
+                <option value="noir">Noir B&amp;W</option>
+                <option value="bleach">Bleach Bypass</option>
+                <option value="golden">Golden Warmth</option>
+              </select>
+            </div>
+
+            <!-- False Color Exposure Button -->
+            <button type="button" id="falseColorBtn" class="btn-tool-toggle" title="Toggle False Color exposure heatmap (F)" aria-label="Toggle False Color" aria-pressed="false">
+              <span>FC</span>
+            </button>
+
+            <!-- Zebra Stripe Button -->
+            <button type="button" id="zebraBtn" class="btn-tool-toggle" title="Toggle Zebra stripes on clipped highlights (Z)" aria-label="Toggle Zebra stripes" aria-pressed="false">
+              <span>ZEBRA</span>
+            </button>
+
+            <!-- A/B Wipe Comparison Button -->
+            <button type="button" id="abCompareBtn" class="btn-tool-toggle disabled" title="Compare previous analyzed frame vs live adjustments (W)" aria-label="Toggle A/B Wipe comparison" aria-pressed="false" disabled>
+              <span>A/B WIPE</span>
+            </button>
+
+            <div class="guides-control-wrapper" id="guidesControl">
+              <button type="button" id="guidesMenuBtn" class="btn-guide-toggle" title="Viewer overlays & framing guides (G)" aria-haspopup="true" aria-expanded="false">
+                <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="3" y="3" width="18" height="18" rx="1"></rect>
+                  <line x1="9" y1="3" x2="9" y2="21"></line>
+                  <line x1="15" y1="3" x2="15" y2="21"></line>
+                  <line x1="3" y1="9" x2="21" y2="9"></line>
+                  <line x1="3" y1="15" x2="21" y2="15"></line>
+                </svg>
+                <span>Guides</span>
+                <span class="guides-badge hidden" id="guidesBadge">0</span>
+                <svg viewBox="0 0 24 24" width="10" height="10" stroke="currentColor" stroke-width="2" fill="none" class="chevron-icon" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+
+              <!-- Guides Popover Menu -->
+              <div class="guides-dropdown-menu hidden" id="guidesMenu" role="menu">
+                <div class="guides-menu-header">
+                  <span>FRAMING GUIDES</span>
+                  <span class="shortcut-hint">Key: G</span>
+                </div>
+                <div class="guides-menu-list">
+                  <label class="guide-toggle-option" for="guideThirds">
+                    <input type="checkbox" id="guideThirds" value="thirds">
+                    <span class="guide-custom-box"></span>
+                    <span class="guide-opt-name">Rule of Thirds</span>
+                    <span class="guide-opt-tag">3×3</span>
+                  </label>
+                  <label class="guide-toggle-option" for="guideCenter">
+                    <input type="checkbox" id="guideCenter" value="center">
+                    <span class="guide-custom-box"></span>
+                    <span class="guide-opt-name">Center Crosshair</span>
+                    <span class="guide-opt-tag">+</span>
+                  </label>
+                  <label class="guide-toggle-option" for="guideGolden">
+                    <input type="checkbox" id="guideGolden" value="golden">
+                    <span class="guide-custom-box"></span>
+                    <span class="guide-opt-name">Golden Ratio</span>
+                    <span class="guide-opt-tag">Phi</span>
+                  </label>
+                  <label class="guide-toggle-option" for="guideSafeAreas">
+                    <input type="checkbox" id="guideSafeAreas" value="safe">
+                    <span class="guide-custom-box"></span>
+                    <span class="guide-opt-name">Safe Areas</span>
+                    <span class="guide-opt-tag">90/80</span>
+                  </label>
+                  <label class="guide-toggle-option" for="guideCinemaScope">
+                    <input type="checkbox" id="guideCinemaScope" value="scope">
+                    <span class="guide-custom-box"></span>
+                    <span class="guide-opt-name">Cinema Scope</span>
+                    <span class="guide-opt-tag">2.39:1</span>
+                  </label>
+                </div>
+                <div class="guides-menu-footer">
+                  <button type="button" class="btn-guide-action" id="guideClearBtn" aria-label="Clear all framing guides">Clear All</button>
+                  <button type="button" class="btn-guide-action" id="guideDefaultBtn" aria-label="Enable rule of thirds guide only">Thirds Only</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="monitor-tally">
             <span class="tally-dot"></span>
-            <span class="tally-text">REC STANDBY</span>
+            <span class="tally-text">Standby</span>
           </div>
         </div>
 
         <div class="viewport">
           <video id="monitor" autoplay playsinline muted></video>
-          
-          <!-- Empty / Placeholder State -->
+
+          <!-- WebGL Shader Canvas for LUTs, False Color, Zebras & A/B Wipe -->
+          <canvas id="glMonitor" class="gl-viewport-canvas" aria-hidden="true"></canvas>
+
+          <!-- A/B Split Wipe Divider & HUD Telemetry Badges -->
+          <div id="abWipeContainer" class="ab-wipe-container hidden" aria-hidden="true">
+            <div id="abWipeLine" class="ab-wipe-line">
+              <div class="ab-wipe-handle" title="Drag to wipe comparison">
+                <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="15 18 9 12 15 6"></polyline><polyline points="9 18 15 12 9 6" transform="rotate(180 12 12)"></polyline></svg>
+              </div>
+            </div>
+            <div class="ab-label-pill label-a">TAKE A <span id="abMetricA" class="ab-metric">REF</span></div>
+            <div class="ab-label-pill label-b">LIVE <span id="abMetricB" class="ab-metric">ADJUSTED</span></div>
+          </div>
+
+          <!-- Framing Guide Overlay Layer (positioned directly over video frame) -->
+          <div class="guides-overlay-layer" id="guidesOverlayLayer" aria-hidden="true">
+            <svg id="guidesSvg" class="guides-svg" xmlns="http://www.w3.org/2000/svg">
+              <!-- Rendered dynamically by GuidesManager -->
+            </svg>
+          </div>
+
+          <!-- Empty / placeholder state -->
           <div class="viewport-overlay" id="viewportPlaceholder">
             <div class="overlay-card">
-              <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1.5" fill="none">
+              <svg viewBox="0 0 24 24" width="40" height="40" stroke="currentColor" stroke-width="1.25" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
                 <circle cx="12" cy="13" r="4"></circle>
               </svg>
-              <h3>No Camera Connected</h3>
-              <p>Select your camera source in the top bar to initialize live monitoring.</p>
-              <button id="requestPermBtn" class="btn btn-secondary">Request Access</button>
+              <h2>No camera connected</h2>
+              <p>Choose a camera under Source in the top bar to start monitoring.</p>
+              <button id="requestPermBtn" class="btn btn-secondary" aria-label="Allow camera access">Allow camera access</button>
             </div>
           </div>
 
-          <!-- Permission Error Alert -->
+          <!-- Permission error -->
           <div class="viewport-overlay error hidden" id="permissionAlert">
             <div class="overlay-card danger">
-              <svg viewBox="0 0 24 24" width="44" height="44" stroke="#ef4444" stroke-width="1.5" fill="none">
+              <svg viewBox="0 0 24 24" width="40" height="40" stroke="currentColor" stroke-width="1.25" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="10"></circle>
                 <line x1="12" y1="8" x2="12" y2="12"></line>
                 <line x1="12" y1="16" x2="12.01" y2="16"></line>
               </svg>
-              <h3>Camera Access Denied</h3>
-              <p>Please grant browser permissions to access your webcam or video capture device.</p>
-              <button id="retryCameraBtn" class="btn btn-primary">Retry Access</button>
+              <h2>Camera access blocked</h2>
+              <p>Allow camera access for this site in your browser settings, then try again.</p>
+              <button id="retryCameraBtn" class="btn btn-primary btn-amber" aria-label="Retry camera connection">Try again</button>
             </div>
           </div>
         </div>
 
-        <!-- Monitor Action Bar -->
+        <!-- Transport bar: exposure readouts + primary action -->
         <div class="monitor-footer">
-          <div class="telemetry-bar">
-            <span class="telemetry-item">SHADOWS: <strong id="telemetryShadows">--%</strong></span>
-            <span class="telemetry-divider">|</span>
-            <span class="telemetry-item">HIGHLIGHTS: <strong id="telemetryHighlights">--%</strong></span>
-            <span class="telemetry-divider">|</span>
-            <span class="telemetry-item">LUMA: <strong id="telemetryLuma">--</strong></span>
+          <div class="telemetry-bar" aria-label="Exposure readouts">
+            <span class="telemetry-item"><span class="telemetry-label">Shadows</span><strong id="telemetryShadows">--%</strong></span>
+            <span class="telemetry-item"><span class="telemetry-label">Highlights</span><strong id="telemetryHighlights">--%</strong></span>
+            <span class="telemetry-item"><span class="telemetry-label">Luma</span><strong id="telemetryLuma">--</strong></span>
           </div>
 
-          <button id="analyzeBtn" class="btn btn-amber">
-            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
-              <circle cx="12" cy="12" r="3"></circle>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-            </svg>
+          <!-- NOTE: analyzer.js rewrites the first <span> inside this button. Keep it first. -->
+          <button id="analyzeBtn" class="btn btn-amber" disabled title="Connect or select a live camera under Source to enable analysis" aria-label="Analyze current live frame (Alt+A)">
             <span>ANALYZE FRAME</span>
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+              <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+              <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+              <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
           </button>
         </div>
       </div>
 
-      <!-- Docked Scopes / Exposure Histogram (DaVinci Resolve Style) -->
+      <!-- Scopes -->
       <div class="scope-dock">
         <div class="dock-header">
-          <div class="dock-title">
-            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+          <div class="panel-title dock-title">
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
             </svg>
-            <span>EXPOSURE SCOPES // OPENCV LUMINANCE & RGB HISTOGRAM</span>
+            <span>Scopes</span>
+            <span class="panel-subtitle">RGB parade with luma overlay</span>
           </div>
-          <div class="scope-legend">
-            <span class="legend-chip r">RED</span>
-            <span class="legend-chip g">GREEN</span>
-            <span class="legend-chip b">BLUE</span>
-            <span class="legend-chip luma">LUMA</span>
+          <div class="scope-legend" aria-label="Scope legend">
+            <span class="legend-chip r">R</span>
+            <span class="legend-chip g">G</span>
+            <span class="legend-chip b">B</span>
+            <span class="legend-chip luma">Luma</span>
           </div>
         </div>
 
         <div class="canvas-wrapper">
-          <canvas id="scopeCanvas" width="640" height="160"></canvas>
+          <canvas id="scopeCanvas" width="640" height="160" aria-label="RGB histogram parade"></canvas>
+        </div>
+      </div>
+
+      <!-- Take Reel & Lookbook Filmstrip Dock -->
+      <div class="take-reel-dock" id="takeReelDock" aria-label="Take Reel filmstrip">
+        <div class="dock-header">
+          <div class="panel-title dock-title">
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+              <line x1="7" y1="2" x2="7" y2="22"></line>
+              <line x1="17" y1="2" x2="17" y2="22"></line>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+              <line x1="2" y1="7" x2="7" y2="7"></line>
+              <line x1="2" y1="17" x2="7" y2="17"></line>
+              <line x1="17" y1="17" x2="22" y2="17"></line>
+              <line x1="17" y1="7" x2="22" y2="7"></line>
+            </svg>
+            <span>Take Reel</span>
+            <span class="panel-subtitle" id="takeReelSubtitle">0 takes</span>
+          </div>
+          <div class="take-reel-actions">
+            <button type="button" id="logTakeBtn" class="btn-reel-action" title="Manually record current frame as a Take">+ TAKE</button>
+            <button type="button" id="exportLookbookBtn" class="btn-reel-action btn-reel-export" title="Export printable HTML/PDF Lookbook">EXPORT LOOKBOOK</button>
+            <button type="button" id="clearReelBtn" class="btn-reel-action" title="Clear recorded takes">CLEAR</button>
+          </div>
+        </div>
+
+        <div class="take-reel-strip" id="takeReelStrip">
+          <div class="take-reel-empty" id="takeReelEmpty">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="1.5" fill="none" aria-hidden="true">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+              <circle cx="12" cy="13" r="4"></circle>
+            </svg>
+            <span>No takes logged yet. Press <strong>Analyze Frame</strong> or <strong>+ Take</strong> to capture scene progression.</span>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- Right Side: Director Dialogue & Advice Panel -->
-    <aside class="sidebar-section">
-      <!-- Panel 1: Director Chat -->
+    <!-- Right: Director + Shot critique -->
+    <aside class="sidebar-section" aria-label="Director and critique">
+      <!-- Director chat (chat.js appends a reset button to .panel-header and inserts presets before #chatForm) -->
       <div class="studio-panel chat-panel">
         <div class="panel-header">
           <div class="panel-title">
-            <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none">
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
             </svg>
-            <span>DIRECTOR CHAT // SCENE INTENT</span>
+            <span>Director</span>
+            <span class="panel-subtitle">Scene intent</span>
           </div>
         </div>
 
-        <div class="chat-log" id="chatLog">
+        <div class="chat-log" id="chatLog" aria-live="polite">
           <div class="chat-msg model">
             <div class="msg-avatar">DP</div>
             <div class="msg-content">
+              <div class="msg-meta">
+                <span class="msg-sender">CO-DIRECTOR (DP)</span>
+              </div>
               <p>Welcome to the studio. Describe the scene you're framing (e.g. <em>"moody noir interrogation"</em> or <em>"warm golden-hour reunion"</em>) and I'll help you lock in the atmosphere.</p>
             </div>
           </div>
         </div>
 
         <form class="chat-input-row" id="chatForm">
-          <input type="text" id="chatInput" placeholder="Describe target scene mood or vision..." autocomplete="off">
-          <button type="submit" class="btn btn-icon">
-            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+          <input type="text" id="chatInput" placeholder="Describe the mood or look you want…" autocomplete="off" aria-label="Message the director">
+          <button type="submit" class="btn btn-icon" aria-label="Send message">
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <line x1="22" y1="2" x2="11" y2="13"></line>
               <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
             </svg>
@@ -164,57 +338,240 @@
         </form>
       </div>
 
-      <!-- Panel 2: Structured Advice Panel -->
+      <!-- Shot critique (inspector) -->
       <div class="studio-panel advice-panel">
         <div class="panel-header">
           <div class="panel-title">
-            <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="4" y1="21" x2="4" y2="14"></line>
+              <line x1="4" y1="10" x2="4" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12" y2="3"></line>
+              <line x1="20" y1="21" x2="20" y2="16"></line>
+              <line x1="20" y1="12" x2="20" y2="3"></line>
+              <line x1="1" y1="14" x2="7" y2="14"></line>
+              <line x1="9" y1="8" x2="15" y2="8"></line>
+              <line x1="17" y1="16" x2="23" y2="16"></line>
             </svg>
-            <span>CINEMATOGRAPHY ADVICE // CRITIQUE</span>
+            <span>Shot critique</span>
           </div>
-          <span class="badge" id="adviceStatus">AWAITING CAPTURE</span>
+          <span class="badge" id="adviceStatus" role="status">AWAITING CAPTURE</span>
         </div>
 
-        <div class="advice-content" id="adviceContent">
-          <!-- Card: Angles -->
-          <div class="critique-card">
+        <div class="advice-content" id="adviceContent" aria-live="polite">
+          <section class="critique-card">
             <div class="card-header">
-              <span class="card-icon">📐</span>
-              <h4>CAMERA ANGLES & PERSPECTIVE</h4>
+              <span class="card-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                  <circle cx="12" cy="13" r="4"></circle>
+                </svg>
+              </span>
+              <h3>Camera angle</h3>
             </div>
-            <p id="anglesText">Click "Analyze Frame" to get targeted camera height, angle, and focal perspective recommendations.</p>
-          </div>
+            <div class="critique-body" id="anglesText">Press Analyze frame for camera height, angle, and lens recommendations.</div>
+          </section>
 
-          <!-- Card: Lighting -->
-          <div class="critique-card">
+          <section class="critique-card">
             <div class="card-header">
-              <span class="card-icon">💡</span>
-              <h4>LIGHTING & EXPOSURE BALANCE</h4>
+              <span class="card-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="5"></circle>
+                  <line x1="12" y1="1" x2="12" y2="3"></line>
+                  <line x1="12" y1="21" x2="12" y2="23"></line>
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                  <line x1="1" y1="12" x2="3" y2="12"></line>
+                  <line x1="21" y1="12" x2="23" y2="12"></line>
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+              </span>
+              <h3>Lighting and exposure</h3>
             </div>
-            <p id="lightingText">Awaiting live frame analysis backed by OpenCV luminance histogram statistics.</p>
-          </div>
+            <div class="critique-body" id="lightingText">Lighting advice will draw on the live exposure readings from the scopes.</div>
+          </section>
 
-          <!-- Card: Composition -->
-          <div class="critique-card">
+          <!-- 2D Top-Down Lighting Setup Diagram -->
+          <section class="critique-card lighting-diagram-card" id="lightingDiagramCard">
             <div class="card-header">
-              <span class="card-icon">🎯</span>
-              <h4>COMPOSITION & FRAMING</h4>
+              <span class="card-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <circle cx="12" cy="12" r="3"></circle>
+                  <line x1="12" y1="2" x2="12" y2="5"></line>
+                  <line x1="12" y1="19" x2="12" y2="22"></line>
+                  <line x1="2" y1="12" x2="5" y2="12"></line>
+                  <line x1="19" y1="12" x2="22" y2="12"></line>
+                </svg>
+              </span>
+              <h3>Lighting setup diagram</h3>
+              <span class="diagram-mode-tag">TOP-DOWN 2D</span>
             </div>
-            <p id="compositionText">Awaiting shot evaluation for headroom, leading lines, and rule of thirds placement.</p>
-          </div>
+            <div class="lighting-diagram-wrapper" id="lightingDiagramWrapper">
+              <div class="diagram-canvas-box">
+                <svg id="lightingDiagramSvg" viewBox="0 0 280 200" class="lighting-diagram-svg" aria-label="Top-down 2D lighting diagram">
+                  <!-- Rendered dynamically by AnalyzerManager -->
+                </svg>
+              </div>
+              <div class="lighting-fixtures-legend" id="lightingFixturesLegend" aria-label="Lighting fixtures details">
+                <!-- Dynamically populated fixture details chips -->
+              </div>
+            </div>
+          </section>
+
+          <section class="critique-card">
+            <div class="card-header">
+              <span class="card-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="1"></rect>
+                  <line x1="9" y1="3" x2="9" y2="21"></line>
+                  <line x1="15" y1="3" x2="15" y2="21"></line>
+                  <line x1="3" y1="9" x2="21" y2="9"></line>
+                  <line x1="3" y1="15" x2="21" y2="15"></line>
+                </svg>
+              </span>
+              <h3>Composition</h3>
+            </div>
+            <div class="critique-body" id="compositionText">Headroom, leading lines, and rule-of-thirds placement will be checked here.</div>
+          </section>
         </div>
       </div>
     </aside>
   </main>
 
+  <!-- Wireless Mobile Camera Pairing Modal -->
+  <dialog id="mobileLinkModal" class="studio-modal hidden" aria-labelledby="mobileLinkTitle">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content modal-mobile-link">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+            <line x1="12" y1="18" x2="12.01" y2="18"></line>
+          </svg>
+          <h2 id="mobileLinkTitle">Wireless Mobile Camera Link</h2>
+        </div>
+        <button type="button" id="closeMobileModalBtn" class="btn-close-modal" aria-label="Close modal">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="mobile-pairing-layout">
+          <!-- Left: QR Code -->
+          <div class="qr-pairing-box">
+            <div id="qrCodeCanvasBox" class="qr-canvas-box">
+              <!-- Rendered by QRCodeLib -->
+            </div>
+            <span class="qr-scan-instruction">Scan with your smartphone camera on Wi-Fi</span>
+          </div>
+
+          <!-- Right: Pairing URL and Remote DP Controls -->
+          <div class="pairing-details-col">
+            <div class="pairing-network-selector-row">
+              <div class="field-group-mini">
+                <label for="mobileIpSelect" class="url-label">Network Interface / IP</label>
+                <select id="mobileIpSelect" class="studio-select" title="Select Network Interface">
+                  <option value="">Detecting interfaces...</option>
+                </select>
+              </div>
+              <div class="field-group-mini">
+                <label for="mobileProtocolSelect" class="url-label">Protocol</label>
+                <select id="mobileProtocolSelect" class="studio-select" title="Select HTTP or HTTPS">
+                  <option value="https" selected>HTTPS (Port 8443) — Required for Camera</option>
+                  <option value="http">HTTP (Port 8000) — Standard</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="pairing-url-box">
+              <div class="url-header-row">
+                <label for="mobilePairingUrl" class="url-label">Direct Pairing URL</label>
+                <a id="mobileTestTabLink" href="#" target="_blank" class="link-open-tab" title="Open mobile view in this browser">Test in New Tab ↗</a>
+              </div>
+              <div class="url-input-row">
+                <input type="text" id="mobilePairingUrl" readonly class="studio-input" aria-label="Direct Pairing URL" value="Fetching local network URL...">
+                <button type="button" id="copyPairingUrlBtn" class="btn-copy-url" title="Copy URL to clipboard">COPY</button>
+              </div>
+            </div>
+
+            <div class="usb-direct-box hidden" id="usbDirectBox">
+              <div class="usb-direct-header">
+                <span class="usb-icon">🔌</span>
+                <div class="usb-text-wrap">
+                  <strong id="usbDeviceTitle">Android Device Connected</strong>
+                  <span id="usbDeviceSubtitle">USB debugging detected. Reverse port forwarding active.</span>
+                </div>
+              </div>
+              <button type="button" id="adbLaunchBtn" class="btn-usb-launch" title="Launch camera directly on connected phone">LAUNCH ON PHONE (USB)</button>
+            </div>
+
+            <div class="mobile-ssl-guide" id="mobileSslGuide">
+              <div class="ssl-guide-header">
+                <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none" aria-hidden="true">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                <span>Mobile Camera SSL Notice:</span>
+              </div>
+              <p>Mobile Chrome & Safari mandate HTTPS to enable camera video. When opening on your phone:</p>
+              <div class="ssl-guide-steps">
+                <span>1. Tap <strong>Advanced</strong> (or <em>Details</em>)</span>
+                <span>2. Tap <strong>Proceed to site</strong></span>
+                <span>3. Tap <strong>Allow Camera</strong></span>
+              </div>
+            </div>
+
+            <div class="remote-cam-status-box" id="remoteCamStatusBox">
+              <div class="status-header">
+                <span>REMOTE CAMERA STATUS</span>
+                <span class="status-badge" id="remoteStatusBadge">WAITING FOR DEVICE...</span>
+              </div>
+
+              <!-- Remote Camera Control Knobs on Laptop -->
+              <div class="remote-controls-grid" id="remoteControlsGrid">
+                <div class="remote-ctrl-item">
+                  <label for="remoteIso">Remote ISO</label>
+                  <select id="remoteIso" class="studio-select" disabled>
+                    <option value="auto">Auto</option>
+                    <option value="100">ISO 100</option>
+                    <option value="200">ISO 200</option>
+                    <option value="400" selected>ISO 400</option>
+                    <option value="800">ISO 800</option>
+                    <option value="1600">ISO 1600</option>
+                    <option value="3200">ISO 3200</option>
+                  </select>
+                </div>
+
+                <div class="remote-ctrl-item">
+                  <label for="remoteEv">Remote EV Bias</label>
+                  <input type="range" id="remoteEv" min="-3" max="3" step="0.5" value="0" disabled>
+                  <span id="remoteEvVal" class="ctrl-val-readout">0.0 EV</span>
+                </div>
+
+                <div class="remote-ctrl-item">
+                  <label>Torch Flashlight</label>
+                  <button type="button" id="remoteTorchBtn" class="btn-tool-toggle" disabled>TORCH OFF</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
   <!-- Hidden offscreen canvas for frame capture -->
   <canvas id="captureCanvas" style="display:none;"></canvas>
 
   <!-- Modular Scripts -->
+  <script src="/static/js/qrcode.js"></script>
   <script src="/static/js/camera.js"></script>
   <script src="/static/js/scope.js"></script>
+  <script src="/static/js/grading.js"></script>
+  <script src="/static/js/guides.js"></script>
   <script src="/static/js/chat.js"></script>
+  <script src="/static/js/takereel.js"></script>
+  <script src="/static/js/mobilelink.js"></script>
   <script src="/static/js/analyzer.js"></script>
   <script src="/static/js/app.js"></script>
 </body>

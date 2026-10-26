@@ -1,7 +1,10 @@
-"""Director Chat Dialogue Engine (Laptop 2 Workstream)."""
 import os
 import re
 from typing import List, Dict, Any
+from dotenv import load_dotenv
+
+# Ensure environment variables are loaded in standalone execution
+load_dotenv()
 
 DIRECTOR_SYSTEM_INSTRUCTION = (
     "You are an acclaimed Director of Photography (DP) and visual co-director in Aperture, "
@@ -85,7 +88,7 @@ def generate_director_reply(messages: List[Dict[str, str]]) -> str:
     using the official google-genai SDK to generate the DP co-director's response.
     Falls back gracefully if GEMINI_API_KEY is not set or if an error occurs.
     """
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    api_key = os.getenv("GEMINI_API_KEY", "").strip().strip('"').strip("'")
     if not api_key or api_key == "your_gemini_api_key_here":
         return _get_contextual_fallback_reply(messages)
 
@@ -116,8 +119,8 @@ def generate_director_reply(messages: List[Dict[str, str]]) -> str:
         )
 
         # Try candidate models supported by Google AI Studio
-        primary_model = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
-        candidate_models = [primary_model, "gemini-3-flash-preview", "gemini-3.5-flash-lite", "gemini-3.8-flash"]
+        primary_model = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite").strip()
+        candidate_models = [primary_model, "gemini-3.5-flash-lite", "gemini-3-flash-preview", "gemini-3.8-flash", "gemini-3.5-flash"]
         # Deduplicate while preserving order
         candidate_models = list(dict.fromkeys(candidate_models))
 
